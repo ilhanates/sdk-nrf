@@ -47,6 +47,8 @@ static bool command_generates_command_complete_event(uint16_t hci_opcode)
 	case SDC_HCI_OPCODE_CMD_LE_ENABLE_ENCRYPTION:
 	case SDC_HCI_OPCODE_CMD_LE_EXT_CREATE_CONN:
 	case SDC_HCI_OPCODE_CMD_LE_PERIODIC_ADV_CREATE_SYNC:
+	case SDC_HCI_OPCODE_CMD_LE_READ_REMOTE_TRANSMIT_POWER_LEVEL:
+	case SDC_HCI_OPCODE_CMD_VS_WRITE_REMOTE_TX_POWER:
 	case BT_HCI_OP_LE_P256_PUBLIC_KEY:
 	case BT_HCI_OP_LE_GENERATE_DHKEY:
 		return false;
@@ -373,6 +375,19 @@ static void supported_commands(sdc_hci_ip_supported_commands_t *cmds)
 	cmds->hci_le_read_antenna_information = 1;
 #endif
 
+//#if defined(CONFIG_BT_TRANSMIT_POWER_CONTROL)
+	cmds->hci_le_enhanced_read_transmit_power_level = 1;
+	cmds->hci_le_read_remote_transmit_power_level = 1;
+	cmds->hci_le_set_transmit_power_reporting_enable = 1;
+	cmds->hci_le_read_rf_path_compensation = 1;
+	cmds->hci_le_write_rf_path_compensation = 1;
+//#endif
+
+//#if defined(CONFIG_BT_PATH_LOSS_MONITORING)
+	cmds->hci_le_set_path_loss_reporting_parameters = 1;
+	cmds->hci_le_set_path_loss_reporting_enable = 1;
+//#endif
+
 #if (defined(CONFIG_BT_HCI_RAW) && defined(CONFIG_BT_TINYCRYPT_ECC)) || defined(CONFIG_BT_CTLR_ECDH)
 	cmds->hci_le_read_local_p256_public_key = 1;
 	cmds->hci_le_generate_dhkey_v1 = 1;
@@ -411,6 +426,9 @@ static void vs_supported_commands(sdc_hci_vs_supported_vs_commands_t *cmds)
 	cmds->conn_event_extend = 1;
 	cmds->qos_conn_event_report_enable = 1;
 	cmds->event_length_set = 1;
+//#if defined(CONFIG_BT_TRANSMIT_POWER_CONTROL)
+	cmds->write_remote_tx_power = 1;
+//#endif
 }
 #endif	/* CONFIG_BT_HCI_VS */
 
@@ -464,6 +482,15 @@ static void le_supported_features(sdc_hci_le_le_features_t *features)
 #endif
 
 	features->channel_selection_algorithm_2 = 1;
+
+//#if defined(CONFIG_BT_TRANSMIT_POWER_CONTROL)
+	features->le_power_control_request = 1;
+	features->le_power_change_indication = 1;
+//#endif
+
+//#if defined(CONFIG_BT_PATH_LOSS_MONITORING)
+	features->le_path_loss_monitoring = 1;
+//#endif
 
 #if defined(CONFIG_BT_CTLR_ADV_PERIODIC_ADI_SUPPORT)
 	features->periodic_advertising_adi_support = 1;
@@ -974,6 +1001,27 @@ static uint8_t le_controller_cmd_put(uint8_t const * const cmd,
 		*param_length_out += sizeof(sdc_hci_cmd_le_read_antenna_information_return_t);
 		return sdc_hci_cmd_le_read_antenna_information((void *)event_out_params);
 #endif
+	case SDC_HCI_OPCODE_CMD_LE_ENHANCED_READ_TRANSMIT_POWER_LEVEL:
+		*param_length_out +=
+			sizeof(sdc_hci_cmd_le_enhanced_read_transmit_power_level_return_t);
+		return sdc_hci_cmd_le_enhanced_read_transmit_power_level((void *)cmd_params,
+									 (void *)event_out_params);
+
+	case SDC_HCI_OPCODE_CMD_LE_READ_REMOTE_TRANSMIT_POWER_LEVEL:
+		*param_length_out += sizeof(sdc_hci_cmd_le_read_remote_transmit_power_level_t);
+		return sdc_hci_cmd_le_read_remote_transmit_power_level((void *)cmd_params);
+
+	case SDC_HCI_OPCODE_CMD_LE_SET_TRANSMIT_POWER_REPORTING_ENABLE:
+		*param_length_out += sizeof(sdc_hci_cmd_le_set_transmit_power_reporting_enable_t);
+		return sdc_hci_cmd_le_set_transmit_power_reporting_enable((void *)cmd_params,
+									  (void *)event_out_params);
+
+	case SDC_HCI_OPCODE_CMD_LE_READ_RF_PATH_COMPENSATION:
+		*param_length_out += sizeof(sdc_hci_cmd_le_read_rf_path_compensation_return_t);
+		return sdc_hci_cmd_le_read_rf_path_compensation((void *)event_out_params);
+
+	case SDC_HCI_OPCODE_CMD_LE_WRITE_RF_PATH_COMPENSATION:
+		return sdc_hci_cmd_le_write_rf_path_compensation((void *)cmd_params);
 
 	default:
 		return BT_HCI_ERR_UNKNOWN_CMD;
@@ -1050,6 +1098,10 @@ static uint8_t vs_cmd_put(uint8_t const * const cmd,
 	case SDC_HCI_OPCODE_CMD_VS_PERIPHERAL_LATENCY_MODE_SET:
 		return sdc_hci_cmd_vs_peripheral_latency_mode_set((void *)cmd_params);
 #endif
+//#if defined(CONFIG_BT_TRANSMIT_POWER_CONTROL)
+	case SDC_HCI_OPCODE_CMD_VS_WRITE_REMOTE_TX_POWER:
+		return sdc_hci_cmd_vs_write_remote_tx_power((void *)cmd_params);
+//#endif
 	default:
 		return BT_HCI_ERR_UNKNOWN_CMD;
 	}
