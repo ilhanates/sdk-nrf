@@ -18,6 +18,8 @@ manifest:
   remotes:
     # nRF Connect SDK GitHub organization.
     # NCS repositories are hosted here.
+    - name: ilat
+      url-base: https://github.com/ilhanates
     - name: ncs
       url-base: https://github.com/nrfconnect
     # Third-party repository sources:
@@ -51,8 +53,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: ilat
       repo-path: sdk-zephyr
-      revision: v3.2.99-ncs2-rc1
+      revision: use_nrf52833_for_bsim_base
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
