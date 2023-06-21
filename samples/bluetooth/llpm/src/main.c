@@ -380,7 +380,7 @@ static void test_run(void)
 	/* Switch to LLPM short connection interval */
 	if (conn_info.role == BT_CONN_ROLE_CENTRAL) {
 		printk("Press any key to set LLPM short connection interval (1 ms)\n");
-		console_getchar();
+		// console_getchar();
 
 		if (enable_llpm_short_connection_interval()) {
 			printk("Enable LLPM short connection interval failed\n");
@@ -389,7 +389,7 @@ static void test_run(void)
 	}
 
 	printk("Press any key to start measuring transmission latency\n");
-	console_getchar();
+	// console_getchar();
 
 	/* Start sending the timestamp to its peer */
 	while (default_conn) {
@@ -439,7 +439,7 @@ int main(void)
 	}
 #endif
 
-	console_init();
+	// console_init();
 
 	printk("Starting Bluetooth LLPM example\n");
 
@@ -468,26 +468,31 @@ int main(void)
 		return 0;
 	}
 
-	while (true) {
-		printk("Choose device role - type c (central) or p (peripheral): ");
+	k_sleep(K_SECONDS(10));
+	scan_init();
+	scan_start();
+	adv_start();
+	// while (true) {
+	// 	printk("Choose device role - type c (central) or p (peripheral): ");
 
-		char input_char = console_getchar();
+	// 	char input_char = console_getchar();
 
-		printk("\n");
+	// 	printk("\n");
 
-		if (input_char == 'c') {
-			printk("Central. Starting scanning\n");
-			scan_init();
-			scan_start();
-			break;
-		} else if (input_char == 'p') {
-			printk("Peripheral. Starting advertising\n");
-			adv_start();
-			break;
-		}
+	// 	if (input_char == 'c') {
+	// 		printk("Central. Starting scanning\n");
+	// 		scan_init();
+	// 		scan_start();
+	// 		break;
+	// 	} else if (input_char == 'p') {
+	// 		printk("Peripheral. Starting advertising\n");
+	// 		adv_start();
+	// 		break;
+	// 	}
 
-		printk("Invalid role\n");
-	}
+
+	// 	printk("Invalid role\n");
+	// }
 
 	if (enable_qos_conn_evt_report()) {
 		printk("Enable LLPM QoS failed.\n");
