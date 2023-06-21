@@ -27,11 +27,11 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define STACKSIZE                    CONFIG_MAIN_STACK_SIZE
 #define THREAD_PRIORITY              K_LOWEST_APPLICATION_THREAD_PRIO
 
-#if defined(CONFIG_SOC_SERIES_NRF53X)
-	#define LOG_OFFLOAD_IRQn SWI1_IRQn
-#elif defined(CONFIG_SOC_SERIES_NRF52X)
-	#define LOG_OFFLOAD_IRQn SWI1_EGU1_IRQn
-#endif
+// #if defined(CONFIG_SOC_SERIES_NRF53X)
+// 	#define LOG_OFFLOAD_IRQn SWI1_IRQn
+// #elif defined(CONFIG_SOC_SERIES_NRF52X)
+// 	#define LOG_OFFLOAD_IRQn SWI1_EGU1_IRQn
+// #endif
 
 static bool request_in_cb = true;
 
@@ -181,7 +181,7 @@ static mpsl_timeslot_signal_return_param_t *mpsl_timeslot_callback(
 		break;
 	}
 
-	NVIC_SetPendingIRQ(LOG_OFFLOAD_IRQn);
+	// NVIC_SetPendingIRQ(LOG_OFFLOAD_IRQn);
 
 	return p_ret_val;
 }
@@ -189,23 +189,23 @@ static mpsl_timeslot_signal_return_param_t *mpsl_timeslot_callback(
 static void mpsl_timeslot_demo(void)
 {
 	int err;
-	char input_char;
+	// char input_char;
 	enum mpsl_timeslot_call api_call;
 
 	printk("-----------------------------------------------------\n");
 	printk("Press a key to open session and request timeslots:\n");
 	printk("* 'a' for a session where each timeslot makes a new request\n");
 	printk("* 'b' for a session with a single timeslot request\n");
-	input_char = console_getchar();
-	printk("%c\n", input_char);
-
-	if (input_char == 'a') {
-		request_in_cb = true;
-	} else if (input_char == 'b') {
-		request_in_cb = false;
-	} else {
-		return;
-	}
+	// input_char = console_getchar();
+	// printk("%c\n", input_char);
+	k_sleep(K_SECONDS(10));
+	// if (input_char == 'a') {
+	// 	request_in_cb = true;
+	// } else if (input_char == 'b') {
+	// 	request_in_cb = false;
+	// } else {
+	// 	return;
+	// }
 
 	api_call = OPEN_SESSION;
 	err = k_msgq_put(&mpsl_api_msgq, &api_call, K_FOREVER);
@@ -222,7 +222,8 @@ static void mpsl_timeslot_demo(void)
 	}
 
 	printk("Press any key to close the session.\n");
-	console_getchar();
+	// console_getchar();
+	k_sleep(K_SECONDS(10));
 
 	api_call = CLOSE_SESSION;
 	err = k_msgq_put(&mpsl_api_msgq, &api_call, K_FOREVER);
@@ -283,18 +284,18 @@ static void mpsl_nonpreemptible_thread(void)
 int main(void)
 {
 
-	int err = console_init();
+	// int err = console_init();
 
-	if (err) {
-		LOG_ERR("Initialize console device error");
-		k_oops();
-	}
+	// if (err) {
+	// 	LOG_ERR("Initialize console device error");
+	// 	k_oops();
+	// }
 
 	printk("-----------------------------------------------------\n");
 	printk("             Nordic MPSL Timeslot sample\n");
 
-	IRQ_DIRECT_CONNECT(LOG_OFFLOAD_IRQn, 1, swi1_isr, 0);
-	irq_enable(LOG_OFFLOAD_IRQn);
+	// IRQ_DIRECT_CONNECT(LOG_OFFLOAD_IRQn, 1, swi1_isr, 0);
+	// irq_enable(LOG_OFFLOAD_IRQn);
 
 	while (1) {
 		mpsl_timeslot_demo();
