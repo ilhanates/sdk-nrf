@@ -11,5 +11,9 @@ project(probe_tester)
 # NORDIC SDK APP START
 target_sources(app PRIVATE
   src/main.c
+  ../common/test_common.c
+  ../common/test_connection.c
+  ../common/test_gatt.c
 )
+target_include_directories(app PRIVATE ../common/)
 # NORDIC SDK APP END

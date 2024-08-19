@@ -13,5 +13,5 @@ fi
 
 west build -b ${BOARD} -p auto -d ${TESTER_BUILD_DIR} ${PROBE_TESTING_BASE}/tester
 
-# west build -b ${BOARD} -p auto -d ${DUT_BUILD_DIR} ${PROBE_TESTING_BASE}/dut
+west build -b ${BOARD} -p auto -d ${DUT_BUILD_DIR} ${PROBE_TESTING_BASE}/dut
 
