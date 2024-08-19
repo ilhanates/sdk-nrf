@@ -20,7 +20,6 @@
 #include <zephyr/sys/check.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/types.h>
-
 #include "test_common.h"
 
 
@@ -33,7 +32,6 @@ void test_init(void)
 void test_loop(void)
 {
 	while (true) {
-		test_gatt_notify_all();
 		k_msleep(10);
 	}
 }
@@ -42,7 +40,7 @@ void test_main(void)
 {
 	test_init();
 	test_central_connect();
-	test_gatt_subscribe();
+	//test_gatt_subscribe();
 	test_loop();
 }
 

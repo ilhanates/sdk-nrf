@@ -21,7 +21,7 @@
 LOG_MODULE_REGISTER(test_connection, LOG_LEVEL_INF);
 
 
-#define LINK_COUNT 5
+#define LINK_COUNT 1
 #define DEFAULT_CONN_INTERVAL	   20
 #define PERIPHERAL_DEVICE_NAME	   "Zephyr Peripheral"
 #define PERIPHERAL_DEVICE_NAME_LEN (sizeof(PERIPHERAL_DEVICE_NAME) - 1)
@@ -51,7 +51,7 @@ static void set_security(struct bt_conn *conn, void *data)
 		LOG_ERR("Failed to set security (%d).", err);
 	}
 
-	wait_status(conn, CONN_INFO_SECURITY_SET);
+	wait_status(conn, CONN_INFO_SECURITY_UPDATED);
 	wait_status(conn, CONN_INFO_ID_RESOLVED);
 }
 
@@ -116,7 +116,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 	}
 
 	struct conn_info *conn_info_ref = get_conn_info_ref(conn);
-	atomic_set_bit(conn_info_ref->flags, CONN_INFO_SECURITY_SET);
+	atomic_set_bit(conn_info_ref->flags, CONN_INFO_SECURITY_UPDATED);
 }
 
 static void identity_resolved(struct bt_conn *conn, const bt_addr_le_t *rpa,
@@ -283,13 +283,8 @@ static void connected_cb(struct bt_conn *conn, uint8_t conn_err)
 	conn_info_ref = get_new_conn_info_ref(bt_conn_get_dst(conn));
 	__ASSERT_NO_MSG(conn_info_ref->conn_ref == NULL);
 
-	conn_info_ref->conn_ref = conn_connecting;
-
-	__ASSERT_NO_MSG(conn == conn_connecting);
-	if (conn == conn_connecting) {
-		conn_connecting = NULL;
-		atomic_clear_bit(status_flags, DEVICE_IS_CONNECTING);
-	}
+	conn_info_ref->conn_ref = conn;
+	atomic_set_bit(conn_info_ref->flags, CONN_INFO_CONNECTED);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -345,9 +340,24 @@ struct conn_info *get_connected_conn_info_ref(struct bt_conn *conn)
 	return NULL;
 }
 
+static bool le_param_req(struct bt_conn *conn, struct bt_le_conn_param *param)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+	LOG_DBG("LE conn param req: %s int (0x%04x (~%u ms), 0x%04x (~%u ms)) lat %d to %d",
+		addr, param->interval_min, (uint32_t)(param->interval_min * 1.25),
+		param->interval_max, (uint32_t)(param->interval_max * 1.25), param->latency,
+		param->timeout);
+
+	return true;
+}
+
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = connected_cb,
 	.disconnected = disconnected,
+	.le_param_req = le_param_req,
 	.security_changed = security_changed,
 	.identity_resolved = identity_resolved,
 };
@@ -383,4 +393,36 @@ void test_central_connect(void)
 
 	LOG_WRN("3- MTU EXC ----------");
 	bt_conn_foreach(BT_CONN_TYPE_LE, exchange_mtu, NULL);
+}
+
+struct conn_info* test_peripheral_connect(void)
+{
+	char name[12];
+	sprintf(name, "Peripheral");
+	bt_set_name(name);
+
+	int err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, NULL, 0, NULL, 0);
+	if (err) {
+		LOG_ERR("Advertising failed to start (err %d)", err);
+		__ASSERT_NO_MSG(err);
+	}
+	LOG_INF("Started advertising");
+
+	struct conn_info *conn = &conn_infos[0];
+	LOG_INF("Waiting for connection from central...");
+	while (!atomic_test_bit(conn_infos->flags, CONN_INFO_CONNECTED)) {
+		k_sleep(K_MSEC(10));
+	}
+
+	LOG_INF("Waiting for security updated...");
+	while (!atomic_test_bit(conn_infos->flags, CONN_INFO_SECURITY_UPDATED)) {
+		k_sleep(K_MSEC(10));
+	}
+
+	LOG_INF("Waiting for MTU exchange...");
+	while (!atomic_test_bit(conn_infos->flags, CONN_INFO_MTU_EXCHANGED)) {
+		k_sleep(K_MSEC(10));
+	}
+
+	return conn;
 }
