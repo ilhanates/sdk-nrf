@@ -22,7 +22,9 @@ enum {
 	CONN_INFO_MTU_EXCHANGED,
 	CONN_INFO_DISCOVERING,
 	CONN_INFO_DISCOVER_PAUSED,
-	CONN_INFO_DISCOVER_COMPLETED,
+	CONN_INFO_DISCOVER_SERV_COMPLETED,
+	CONN_INFO_DISCOVER_CHAR_COMPLETED,
+	CONN_INFO_DISCOVER_DESC_COMPLETED,
 	CONN_INFO_SUBSCRIBED,
 
 	/* Total number of flags - must be at the end of the enum */
@@ -41,7 +43,62 @@ struct conn_info {
 	bt_addr_le_t addr;
 };
 
-extern uint8_t central_subscription;
+
+typedef struct  {
+	uint32_t conn_obj_addr;
+	uint16_t start_handle;
+	uint16_t end_handle;
+	uint8_t perm;
+	uint8_t uuid_type;
+	union  {
+		uint16_t uuid16;
+		uint32_t uuid32;
+		uint8_t uuid128[16];
+	} uuid;
+} gatt_service_discovery_t;
+
+typedef struct  {
+	uint32_t conn_obj_addr;
+	uint16_t handle;
+	uint16_t value_handle;
+	uint8_t properties;
+	uint8_t perm;
+	uint8_t uuid_type;
+	union  {
+		uint16_t uuid16;
+		uint32_t uuid32;
+		uint8_t uuid128[16];
+	} uuid;
+} gatt_char_discovery_t;
+
+typedef struct  {
+	uint32_t conn_obj_addr;
+	uint16_t handle;
+	uint8_t perm;
+	uint8_t uuid_type;
+	union  {
+		uint16_t uuid16;
+		uint32_t uuid32;
+		uint8_t uuid128[16];
+	} uuid;
+} gatt_descr_discovery_t;
+
+typedef struct  {
+	uint32_t conn_obj_addr;
+	uint16_t handle;
+	uint8_t perm;
+	uint8_t uuid_type;
+	union  {
+		uint16_t uuid16;
+		uint32_t uuid32;
+		uint8_t uuid128[16];
+	} uuid;
+} gatt_attr_discovery_t;
+
+typedef struct {
+	uint16_t len;
+	uint8_t buf[513];
+} gatt_attr_data_t;
 
 void test_connection_init(void);
 void test_central_connect(void);
@@ -51,7 +108,7 @@ struct conn_info *get_connected_conn_info_ref(struct bt_conn *conn);
 bool is_connected(struct bt_conn *conn);
 
 void test_gatt_init(void);
-void test_gatt_discovery(struct conn_info *conn);
+int test_gatt_discovery(struct conn_info *conn);
 void test_gatt_subscribe(struct conn_info *conn);
 void test_gatt_notify(struct conn_info *conn);
 

@@ -33,19 +33,27 @@ void test_init(void)
 void test_loop(void)
 {
 	// int ret = 0;
-	// while (true) {
-	// 	ret = test_gatt_notify();
-	// 	if (ret) break;
-	// }
+	while (true) {
+		// ret = test_gatt_notify();
+		// if (ret) break;
+		k_msleep(10);
+	}
 }
 
 void test_main(void)
 {
+	int ret = 0;
+
 	test_init();
+
 	struct conn_info *conn = test_peripheral_connect();
-	test_gatt_discovery(conn);
-	test_gatt_subscribe(conn);
-	test_gatt_notify(conn);
+	if(!conn) return;
+
+	ret = test_gatt_discovery(conn);
+	if (ret) return;
+
+	// test_gatt_subscribe(conn);
+	// test_gatt_notify(conn);
 	// test_loop();
 	// test_disconnect();
 }
