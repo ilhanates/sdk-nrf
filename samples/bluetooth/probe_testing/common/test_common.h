@@ -100,6 +100,8 @@ typedef struct {
 	uint8_t buf[513];
 } gatt_attr_data_t;
 
+#define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0xBB, 0x4A, 0xFF, 0x4F, 0xAD, 0x03, 0x41, 0x5D, 0xA9, 0x6C, 0x9D, 0x6C, 0xDD, 0xDA, 0x83, 0x04)
+
 void test_connection_init(void);
 void test_central_connect(void);
 struct conn_info *test_peripheral_connect(void);
@@ -107,10 +109,12 @@ struct conn_info *get_conn_info_ref(struct bt_conn *conn_ref);
 struct conn_info *get_connected_conn_info_ref(struct bt_conn *conn);
 bool is_connected(struct bt_conn *conn);
 
-void test_gatt_init(void);
-int test_gatt_discovery(struct conn_info *conn);
-void test_gatt_subscribe(struct conn_info *conn);
-void test_gatt_notify(struct conn_info *conn);
+void test_gatt_client_init(void);
+int test_gatt_client_discover(struct conn_info *conn);
+void test_gatt_client_subscribe(struct conn_info *conn);
 
+void test_gatt_server_init(void);
+void test_gatt_server_wait_subscribe(void);
+void test_gatt_server_notify_all(void);
 
 

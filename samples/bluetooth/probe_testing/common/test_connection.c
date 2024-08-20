@@ -419,10 +419,5 @@ struct conn_info* test_peripheral_connect(void)
 		k_sleep(K_MSEC(10));
 	}
 
-	LOG_INF("Waiting for MTU exchange...");
-	while (!atomic_test_bit(conn_infos->flags, CONN_INFO_MTU_EXCHANGED)) {
-		k_sleep(K_MSEC(10));
-	}
-
 	return conn;
 }

@@ -27,7 +27,7 @@
 void test_init(void)
 {
 	test_connection_init();
-	test_gatt_init();
+	test_gatt_client_init();
 }
 
 void test_loop(void)
@@ -49,12 +49,11 @@ void test_main(void)
 	struct conn_info *conn = test_peripheral_connect();
 	if(!conn) return;
 
-	ret = test_gatt_discovery(conn);
+	ret = test_gatt_client_discover(conn);
 	if (ret) return;
 
-	// test_gatt_subscribe(conn);
-	// test_gatt_notify(conn);
-	// test_loop();
+	test_gatt_client_subscribe(conn);
+	test_loop();
 	// test_disconnect();
 }
 

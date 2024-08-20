@@ -26,12 +26,18 @@
 void test_init(void)
 {
 	test_connection_init();
-	test_gatt_init();
+	test_gatt_server_init();
 }
 
 void test_loop(void)
 {
-	while (true) {
+	int count = 1;
+	test_gatt_server_wait_subscribe();
+
+	test_gatt_server_notify_all();
+	while (count) {
+		// test_gatt_server_notify_all();
+		// count--;
 		k_msleep(10);
 	}
 }
@@ -40,7 +46,6 @@ void test_main(void)
 {
 	test_init();
 	test_central_connect();
-	//test_gatt_subscribe();
 	test_loop();
 }
 
