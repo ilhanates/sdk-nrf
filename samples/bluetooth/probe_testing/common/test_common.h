@@ -6,6 +6,10 @@
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/uuid.h>
 
+#define MAX_DATA_LEN 128
+
+#define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0xBB, 0x4A, 0xFF, 0x4F, 0xAD, 0x03, 0x41, 0x5D, 0xA9, 0x6C, 0x9D, 0x6C, 0xDD, 0xDA, 0x83, 0x04)
+
 enum {
 	DEVICE_IS_SCANNING,
 	DEVICE_IS_CONNECTING,
@@ -26,6 +30,7 @@ enum {
 	CONN_INFO_DISCOVER_CHAR_COMPLETED,
 	CONN_INFO_DISCOVER_DESC_COMPLETED,
 	CONN_INFO_SUBSCRIBED,
+	CONN_INFO_INDICATION_CONFIRMED,
 
 	/* Total number of flags - must be at the end of the enum */
 	CONN_INFO_NUM_FLAGS,
@@ -100,7 +105,6 @@ typedef struct {
 	uint8_t buf[513];
 } gatt_attr_data_t;
 
-#define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0xBB, 0x4A, 0xFF, 0x4F, 0xAD, 0x03, 0x41, 0x5D, 0xA9, 0x6C, 0x9D, 0x6C, 0xDD, 0xDA, 0x83, 0x04)
 
 void test_connection_init(void);
 void test_central_connect(void);
@@ -111,10 +115,14 @@ bool is_connected(struct bt_conn *conn);
 
 void test_gatt_client_init(void);
 int test_gatt_client_discover(struct conn_info *conn);
-void test_gatt_client_subscribe(struct conn_info *conn);
+void test_gatt_client_subscribe(struct conn_info *conn, uint16_t value);
+int test_gatt_client_write_without_resp(struct conn_info *conn);
 
 void test_gatt_server_init(void);
-void test_gatt_server_wait_subscribe(void);
+void test_gatt_server_wait_subscribe(uint8_t subscription_value);
 void test_gatt_server_notify_all(void);
+void test_gatt_server_indicate_all(void);
+
+void test_common_prepare_value(uint16_t id, uint8_t *descr, uint32_t sequence, uint8_t *dst);
 
 

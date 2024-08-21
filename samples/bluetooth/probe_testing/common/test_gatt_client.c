@@ -19,8 +19,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(test_gatt_client, LOG_LEVEL_INF);
 
-#define CHARACTERISTIC_DATA_MAX_LEN 260
-#define NOTIFICATION_DATA_LEN	    MAX(200, (CONFIG_BT_L2CAP_TX_MTU - 4))
+static uint8_t test_value[MAX_DATA_LEN];
 
 static gatt_service_discovery_t service_discovery;
 static gatt_char_discovery_t char_discovery;
@@ -39,7 +38,8 @@ static void gatt_client_subscribe_cb(struct bt_conn *conn, uint8_t err, struct b
 static uint8_t gatt_client_notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
 			   const void *data, uint16_t length)
 {
-	LOG_INF("[NOTIFICATION]");
+	uint8_t *value = (uint8_t *)data;
+	LOG_INF("%s", value);
 	return BT_GATT_ITER_CONTINUE;
 }
 
@@ -171,10 +171,10 @@ int test_gatt_client_discover(struct conn_info *conn_info_ref)
 	return 0;
 }
 
-void test_gatt_client_subscribe(struct conn_info *conn_info_ref)
+void test_gatt_client_subscribe(struct conn_info *conn_info_ref, uint16_t value)
 {
 	int err = 0;
-	subscribe_params.value = BT_GATT_CCC_NOTIFY;
+	subscribe_params.value = value;
 	subscribe_params.value_handle = char_discovery.value_handle;
 	subscribe_params.ccc_handle = descr_discovery.handle;
 	subscribe_params.subscribe = gatt_client_subscribe_cb,
@@ -189,4 +189,18 @@ void test_gatt_client_subscribe(struct conn_info *conn_info_ref)
 	while (!atomic_test_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED)) {
 		k_sleep(K_MSEC(10));
 	}
+}
+
+int test_gatt_client_write_without_resp(struct conn_info *conn_info_ref)
+{
+	static uint16_t write_count = 1;
+	test_common_prepare_value(2, "WRITE", write_count, test_value);
+	int err = bt_gatt_write_without_response(conn_info_ref->conn_ref, char_discovery.value_handle, test_value,
+						 MAX_DATA_LEN, false);
+	if (err) {
+		LOG_ERR("GATT Write without response failed:%d", err);
+	}
+	write_count++;
+
+	return err;
 }

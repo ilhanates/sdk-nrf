@@ -31,14 +31,15 @@ void test_init(void)
 
 void test_loop(void)
 {
-	int count = 1;
-	test_gatt_server_wait_subscribe();
-
+	test_gatt_server_wait_subscribe(BT_GATT_CCC_NOTIFY);
 	test_gatt_server_notify_all();
-	while (count) {
-		// test_gatt_server_notify_all();
-		// count--;
-		k_msleep(10);
+	test_gatt_server_wait_subscribe(0);
+
+	test_gatt_server_wait_subscribe(BT_GATT_CCC_INDICATE);
+	test_gatt_server_indicate_all();
+
+	while (true) {
+		k_sleep(K_MSEC(1));
 	}
 }
 

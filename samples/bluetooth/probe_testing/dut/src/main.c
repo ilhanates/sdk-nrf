@@ -24,6 +24,8 @@
 #include <zephyr/types.h>
 #include "test_common.h"
 
+struct conn_info *conn = NULL;
+
 void test_init(void)
 {
 	test_connection_init();
@@ -32,10 +34,11 @@ void test_init(void)
 
 void test_loop(void)
 {
-	// int ret = 0;
+	test_gatt_client_subscribe(conn, BT_GATT_CCC_NOTIFY);
+	test_gatt_client_write_without_resp(conn);
+	test_gatt_client_subscribe(conn, BT_GATT_CCC_INDICATE);
+
 	while (true) {
-		// ret = test_gatt_notify();
-		// if (ret) break;
 		k_msleep(10);
 	}
 }
@@ -46,13 +49,12 @@ void test_main(void)
 
 	test_init();
 
-	struct conn_info *conn = test_peripheral_connect();
+	conn= test_peripheral_connect();
 	if(!conn) return;
 
 	ret = test_gatt_client_discover(conn);
 	if (ret) return;
 
-	test_gatt_client_subscribe(conn);
 	test_loop();
 	// test_disconnect();
 }
