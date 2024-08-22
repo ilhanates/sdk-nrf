@@ -37,15 +37,19 @@ void on_att_mtu_updated_cb(struct bt_conn *conn, uint16_t tx, uint16_t rx)
 
 		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
-		struct conn_info *conn_info_ref = get_conn_info_ref(conn);
-		atomic_set_bit(conn_info_ref->flags, CONN_INFO_MTU_EXCHANGED);
+		conn_info_t *conn_info = get_conn_info(conn);
+		atomic_set_bit(conn_info->flags, CONN_INFO_MTU_EXCHANGED);
 		LOG_INF("Updating MTU succeeded %s", addr);
 	}
 }
 
 static void on_gatt_ccc_changed_cb(const struct bt_gatt_attr *attr, uint16_t value)
 {
-	LOG_INF("CCC changed: %u", value);
+	if (value) {
+		LOG_INF("subscribed for %s", (value == BT_GATT_CCC_NOTIFY) ? "notification": "indication");
+	} else {
+		LOG_INF("unsubscribed");
+	}
 
 	gatt_subscription = value;
 }
@@ -53,9 +57,9 @@ static void on_gatt_ccc_changed_cb(const struct bt_gatt_attr *attr, uint16_t val
 static void gatt_server_indicate_cb(struct bt_conn *conn,
 			struct bt_gatt_indicate_params *params, uint8_t err)
 {
-	LOG_INF("Indication: %s\n", err != 0U ? "fail" : "success");
-	struct conn_info *conn_info_ref = get_conn_info_ref(conn);
-	atomic_set_bit(conn_info_ref->flags, CONN_INFO_INDICATION_CONFIRMED);
+	LOG_INF("indication %s", err != 0U ? "fail" : "success");
+	conn_info_t *conn_info = get_conn_info(conn);
+	atomic_set_bit(conn_info->flags, CONN_INFO_INDICATION_CONFIRMED);
 }
 
 static ssize_t on_gatt_attr_write_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
@@ -92,12 +96,11 @@ void test_gatt_server_init(void)
 	bt_gatt_cb_register(&gatt_callbacks);
 
 	custom_attr = bt_gatt_find_by_uuid(_gatt_service.attrs, _gatt_service.attr_count, CUSTOM_CHAR_UUID);
-	LOG_ERR("custom_attr attr %u", custom_attr->handle);
 }
 
-void test_gatt_server_wait_subscribe(uint8_t subscription_value)
+void test_gatt_server_wait_for(uint8_t subscription_value)
 {
-	LOG_INF("Waiting GATT %ssubscription...", (subscription_value)? "": "Un");
+	LOG_INF("%s...", (subscription_value)? "subscription": "unsubscription");
 	while (gatt_subscription != subscription_value) {
 		k_sleep(K_MSEC(10));
 	}

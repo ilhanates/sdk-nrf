@@ -6,7 +6,7 @@
 
 #include "test_common.h"
 
-struct conn_info *conn = NULL;
+conn_info_t *conn = NULL;
 
 void test_init(void)
 {

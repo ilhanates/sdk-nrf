@@ -14,12 +14,13 @@ void test_init(void)
 
 void test_loop(void)
 {
-	test_gatt_server_wait_subscribe(BT_GATT_CCC_NOTIFY);
+	test_gatt_server_wait_for(BT_GATT_CCC_NOTIFY);
 	test_gatt_server_notify_all();
-	test_gatt_server_wait_subscribe(0);
+	test_gatt_server_wait_for(0);
 
-	test_gatt_server_wait_subscribe(BT_GATT_CCC_INDICATE);
+	test_gatt_server_wait_for(BT_GATT_CCC_INDICATE);
 	test_gatt_server_indicate_all();
+	test_gatt_server_wait_for(0);
 
 	END_TEST("TESTER")
 	BSIM_BUSY_WAIT

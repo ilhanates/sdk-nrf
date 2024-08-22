@@ -40,15 +40,16 @@ enum {
 	CONN_INFO_DISCOVER_DESC_COMPLETED,
 	CONN_INFO_SUBSCRIBED,
 	CONN_INFO_NOTIFIED,
+	CONN_INFO_INDICATED,
 	CONN_INFO_INDICATION_CONFIRMED,
 
 	/* Total number of flags - must be at the end of the enum */
 	CONN_INFO_NUM_FLAGS,
 };
 
-struct conn_info {
+typedef struct {
 	ATOMIC_DEFINE(flags, CONN_INFO_NUM_FLAGS);
-	struct bt_conn *conn_ref;
+	struct bt_conn *conn;
 	uint32_t notify_counter;
 	uint32_t tx_notify_counter;
 	struct bt_uuid_128 uuid;
@@ -56,7 +57,7 @@ struct conn_info {
 	struct bt_gatt_subscribe_params subscribe_params;
 	struct bt_conn_le_data_len_param le_data_len_param;
 	bt_addr_le_t addr;
-};
+} conn_info_t;
 
 
 typedef struct  {
@@ -118,20 +119,18 @@ typedef struct {
 
 void test_connection_init(void);
 void test_central_connect(void);
-struct conn_info *test_peripheral_connect(void);
-struct conn_info *get_conn_info_ref(struct bt_conn *conn_ref);
-struct conn_info *get_connected_conn_info_ref(struct bt_conn *conn);
-bool is_connected(struct bt_conn *conn);
+conn_info_t *test_peripheral_connect(void);
+conn_info_t *get_conn_info(struct bt_conn *conn);
 
 void test_gatt_client_init(void);
-int test_gatt_client_discover(struct conn_info *conn);
-void test_gatt_client_subscribe(struct conn_info *conn, uint16_t value);
-void test_gatt_client_unsubscribe(struct conn_info *conn_info_ref);
-int test_gatt_client_write_without_resp(struct conn_info *conn);
-void test_gatt_client_wait_notification(struct conn_info *conn_info_ref);
+int test_gatt_client_discover(conn_info_t *conn);
+void test_gatt_client_subscribe(conn_info_t *conn, uint16_t value);
+void test_gatt_client_unsubscribe(conn_info_t *conn_info);
+int test_gatt_client_write_without_resp(conn_info_t *conn);
+void test_gatt_client_wait_for(conn_info_t *conn_info, uint8_t state);
 
 void test_gatt_server_init(void);
-void test_gatt_server_wait_subscribe(uint8_t subscription_value);
+void test_gatt_server_wait_for(uint8_t subscription_value);
 void test_gatt_server_notify_all(void);
 void test_gatt_server_indicate_all(void);
 
