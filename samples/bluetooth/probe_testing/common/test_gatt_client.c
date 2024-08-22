@@ -30,16 +30,16 @@ static struct bt_gatt_subscribe_params subscribe_params;
 static void gatt_client_subscribe_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_subscribe_params *params)
 {
 	LOG_INF("[SUBSCRIBED]");
-	struct conn_info *conn_info_ref = get_conn_info_ref(conn);
-	atomic_set_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED);
+	conn_info_t *conn_info = get_conn_info(conn);
+	atomic_set_bit(conn_info->flags, CONN_INFO_SUBSCRIBED);
 }
 
 static void gatt_client_unsubscribe_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_subscribe_params *params)
 {
 	LOG_INF("[UNSUBSCRIBED]");
 
-	struct conn_info *conn_info_ref = get_conn_info_ref(conn);
-	atomic_clear_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED);
+	conn_info_t *conn_info = get_conn_info(conn);
+	atomic_clear_bit(conn_info->flags, CONN_INFO_SUBSCRIBED);
 }
 
 static uint8_t gatt_client_notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
@@ -49,9 +49,9 @@ static uint8_t gatt_client_notify_cb(struct bt_conn *conn, struct bt_gatt_subscr
 	if (value && length > 0) {
 		LOG_INF("%s", value);
 
-		struct conn_info *conn_info_ref = get_conn_info_ref(conn);
+		conn_info_t *conn_info = get_conn_info(conn);
 		uint8_t flag = (params->value == BT_GATT_CCC_NOTIFY) ? CONN_INFO_NOTIFIED: CONN_INFO_INDICATED;
-		atomic_set_bit(conn_info_ref->flags, flag);
+		atomic_set_bit(conn_info->flags, flag);
 	}
 	return BT_GATT_ITER_CONTINUE;
 }
@@ -65,7 +65,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 	if (attr == NULL) {
 		return BT_GATT_ITER_STOP;
 	}
-	struct conn_info *conn_info_ref = get_conn_info_ref(conn);
+	conn_info_t *conn_info = get_conn_info(conn);
 	char uuid_str[BT_UUID_STR_LEN];
 	int state = BT_GATT_ITER_CONTINUE;
 	switch (params->type) {
@@ -80,7 +80,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 
 			bt_uuid_to_str(gatt_service->uuid, uuid_str, sizeof(uuid_str));
 			LOG_INF("GATT_DISCOVER_PRIMARY UUID: %s HANDLE-> S:%u E:%u", uuid_str, service_discovery.start_handle, service_discovery.end_handle);
-			atomic_set_bit(conn_info_ref->flags, CONN_INFO_DISCOVER_SERV_COMPLETED);
+			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_SERV_COMPLETED);
 			break;
 		case BT_GATT_DISCOVER_CHARACTERISTIC:
 			gatt_chrc = attr->user_data;
@@ -93,7 +93,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 
 			bt_uuid_to_str(gatt_chrc->uuid, uuid_str, sizeof(uuid_str));
 			LOG_INF("BT_GATT_DISCOVER_CHARACTERISTIC UUID: %s HANDLE-> %u Value Handle:%u", uuid_str, char_discovery.handle, char_discovery.value_handle);
-			atomic_set_bit(conn_info_ref->flags, CONN_INFO_DISCOVER_CHAR_COMPLETED);
+			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_CHAR_COMPLETED);
 			break;
 		case BT_GATT_DISCOVER_DESCRIPTOR:
 			descr_discovery.conn_obj_addr = (uint32_t)conn;
@@ -103,7 +103,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 
 			bt_uuid_to_str(attr->uuid, uuid_str, sizeof(uuid_str));
 			LOG_INF("BT_GATT_DISCOVER_DESCRIPTOR UUID: %s HANDLE:%u", uuid_str, descr_discovery.handle);
-			atomic_set_bit(conn_info_ref->flags, CONN_INFO_DISCOVER_DESC_COMPLETED);
+			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_DESC_COMPLETED);
 			//state = BT_GATT_ITER_STOP;
 			break;
 		case BT_GATT_DISCOVER_ATTRIBUTE:
@@ -126,56 +126,56 @@ void test_gatt_client_init(void)
 {
 }
 
-int test_gatt_client_discover(struct conn_info *conn_info_ref)
+int test_gatt_client_discover(conn_info_t *conn_info)
 {
 	int err = 0;
-	memcpy(&conn_info_ref->uuid, CUSTOM_SERVICE_UUID,
-		   sizeof(conn_info_ref->uuid));
-	memset(&conn_info_ref->discover_params, 0,
-		   sizeof(conn_info_ref->discover_params));
+	memcpy(&conn_info->uuid, CUSTOM_SERVICE_UUID,
+		   sizeof(conn_info->uuid));
+	memset(&conn_info->discover_params, 0,
+		   sizeof(conn_info->discover_params));
 
 	LOG_INF("Start service discovery...");
-	conn_info_ref->discover_params.uuid = &conn_info_ref->uuid.uuid;
-	conn_info_ref->discover_params.func = gatt_discover_cb;
-	conn_info_ref->discover_params.start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
-	conn_info_ref->discover_params.end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
-	conn_info_ref->discover_params.type = BT_GATT_DISCOVER_PRIMARY;
-	err = bt_gatt_discover(conn_info_ref->conn_ref, &conn_info_ref->discover_params);
+	conn_info->discover_params.uuid = &conn_info->uuid.uuid;
+	conn_info->discover_params.func = gatt_discover_cb;
+	conn_info->discover_params.start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
+	conn_info->discover_params.end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
+	conn_info->discover_params.type = BT_GATT_DISCOVER_PRIMARY;
+	err = bt_gatt_discover(conn_info->conn, &conn_info->discover_params);
 	if (err) {
 		return err;
 	}
 	LOG_INF("Waiting for service discovery...");
-	while (!atomic_test_bit(conn_info_ref->flags, CONN_INFO_DISCOVER_SERV_COMPLETED)) {
+	while (!atomic_test_bit(conn_info->flags, CONN_INFO_DISCOVER_SERV_COMPLETED)) {
 		k_sleep(K_MSEC(10));
 	}
 
 	LOG_INF("Start char discovery...");
-	conn_info_ref->discover_params.uuid = NULL;
-	conn_info_ref->discover_params.func = gatt_discover_cb;
-	conn_info_ref->discover_params.start_handle = service_discovery.start_handle;
-	conn_info_ref->discover_params.end_handle = service_discovery.end_handle;
-	conn_info_ref->discover_params.type = BT_GATT_DISCOVER_CHARACTERISTIC;
-	err = bt_gatt_discover(conn_info_ref->conn_ref, &conn_info_ref->discover_params);
+	conn_info->discover_params.uuid = NULL;
+	conn_info->discover_params.func = gatt_discover_cb;
+	conn_info->discover_params.start_handle = service_discovery.start_handle;
+	conn_info->discover_params.end_handle = service_discovery.end_handle;
+	conn_info->discover_params.type = BT_GATT_DISCOVER_CHARACTERISTIC;
+	err = bt_gatt_discover(conn_info->conn, &conn_info->discover_params);
 	if (err) {
 		return err;
 	}
 	LOG_INF("Waiting for char discovery...");
-	while (!atomic_test_bit(conn_info_ref->flags, CONN_INFO_DISCOVER_CHAR_COMPLETED)) {
+	while (!atomic_test_bit(conn_info->flags, CONN_INFO_DISCOVER_CHAR_COMPLETED)) {
 		k_sleep(K_MSEC(10));
 	}
 
 	LOG_INF("Start descr discovery...");
-	conn_info_ref->discover_params.uuid = NULL;
-	conn_info_ref->discover_params.func = gatt_discover_cb;
-	conn_info_ref->discover_params.start_handle = char_discovery.value_handle + 1;
-	conn_info_ref->discover_params.end_handle = service_discovery.end_handle;
-	conn_info_ref->discover_params.type = BT_GATT_DISCOVER_DESCRIPTOR;
-	err = bt_gatt_discover(conn_info_ref->conn_ref, &conn_info_ref->discover_params);
+	conn_info->discover_params.uuid = NULL;
+	conn_info->discover_params.func = gatt_discover_cb;
+	conn_info->discover_params.start_handle = char_discovery.value_handle + 1;
+	conn_info->discover_params.end_handle = service_discovery.end_handle;
+	conn_info->discover_params.type = BT_GATT_DISCOVER_DESCRIPTOR;
+	err = bt_gatt_discover(conn_info->conn, &conn_info->discover_params);
 	if (err) {
 		return err;
 	}
 	LOG_INF("Waiting for char discovery...");
-	while (!atomic_test_bit(conn_info_ref->flags, CONN_INFO_DISCOVER_DESC_COMPLETED)) {
+	while (!atomic_test_bit(conn_info->flags, CONN_INFO_DISCOVER_DESC_COMPLETED)) {
 		k_sleep(K_MSEC(10));
 	}
 
@@ -184,7 +184,7 @@ int test_gatt_client_discover(struct conn_info *conn_info_ref)
 	return 0;
 }
 
-void test_gatt_client_subscribe(struct conn_info *conn_info_ref, uint16_t value)
+void test_gatt_client_subscribe(conn_info_t *conn_info, uint16_t value)
 {
 	int err = 0;
 	subscribe_params.value = value;
@@ -192,19 +192,19 @@ void test_gatt_client_subscribe(struct conn_info *conn_info_ref, uint16_t value)
 	subscribe_params.ccc_handle = descr_discovery.handle;
 	subscribe_params.subscribe = gatt_client_subscribe_cb,
 	subscribe_params.notify = gatt_client_notify_cb;
-	err = bt_gatt_subscribe(conn_info_ref->conn_ref, &subscribe_params);
+	err = bt_gatt_subscribe(conn_info->conn, &subscribe_params);
 	if (err && err != -EALREADY) {
 		LOG_ERR("Subscribe failed (err %d)", err);
 		return;
 	}
 
 	LOG_INF("Waiting for gatt subscribe...");
-	while (!atomic_test_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED)) {
+	while (!atomic_test_bit(conn_info->flags, CONN_INFO_SUBSCRIBED)) {
 		k_sleep(K_MSEC(10));
 	}
 }
 
-void test_gatt_client_unsubscribe(struct conn_info *conn_info_ref)
+void test_gatt_client_unsubscribe(conn_info_t *conn_info)
 {
 	int err = 0;
 	subscribe_params.value = 0;
@@ -213,23 +213,23 @@ void test_gatt_client_unsubscribe(struct conn_info *conn_info_ref)
 	subscribe_params.subscribe = gatt_client_unsubscribe_cb,
 	subscribe_params.notify = gatt_client_notify_cb;
 
-	err = bt_gatt_unsubscribe(conn_info_ref->conn_ref, &subscribe_params);
+	err = bt_gatt_unsubscribe(conn_info->conn, &subscribe_params);
 	if (err && err != -EALREADY) {
 		LOG_ERR("Unsubscribe failed (err %d)", err);
 		return;
 	}
 
 	LOG_INF("Waiting for gatt unsubscribe...");
-	while (atomic_test_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED)) {
+	while (atomic_test_bit(conn_info->flags, CONN_INFO_SUBSCRIBED)) {
 		k_sleep(K_MSEC(10));
 	}
 }
 
-int test_gatt_client_write_without_resp(struct conn_info *conn_info_ref)
+int test_gatt_client_write_without_resp(conn_info_t *conn_info)
 {
 	static uint16_t write_count = 1;
 	test_common_prepare_value(2, "WRITE", write_count, test_value);
-	int err = bt_gatt_write_without_response(conn_info_ref->conn_ref, char_discovery.value_handle, test_value,
+	int err = bt_gatt_write_without_response(conn_info->conn, char_discovery.value_handle, test_value,
 						 MAX_DATA_LEN, false);
 	if (err) {
 		LOG_ERR("GATT Write without response failed:%d", err);
@@ -239,11 +239,11 @@ int test_gatt_client_write_without_resp(struct conn_info *conn_info_ref)
 	return err;
 }
 
-void test_gatt_client_wait_for(struct conn_info *conn_info_ref, uint8_t state)
+void test_gatt_client_wait_for(conn_info_t *conn_info, uint8_t state)
 {
 	LOG_INF("%s...", (state == CONN_INFO_NOTIFIED) ? "notification": "indication");
-	while (!atomic_test_bit(conn_info_ref->flags, state)) {
+	while (!atomic_test_bit(conn_info->flags, state)) {
 		k_sleep(K_MSEC(10));
 	}
-	atomic_clear_bit(conn_info_ref->flags, state);
+	atomic_clear_bit(conn_info->flags, state);
 }
