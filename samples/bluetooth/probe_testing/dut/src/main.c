@@ -6,7 +6,7 @@
 
 #include "test_common.h"
 
-conn_info_t *conn = NULL;
+conn_info_t *conn_info = NULL;
 
 void test_init(void)
 {
@@ -16,18 +16,15 @@ void test_init(void)
 
 void test_loop(void)
 {
-	test_gatt_client_subscribe(conn, BT_GATT_CCC_NOTIFY);
-	test_gatt_client_wait_for(conn, CONN_INFO_NOTIFIED);
-	test_gatt_client_unsubscribe(conn);
+	test_gatt_client_subscribe(conn_info, BT_GATT_CCC_NOTIFY);
+	test_gatt_client_wait_for(conn_info, CONN_INFO_NOTIFIED);
+	test_gatt_client_unsubscribe(conn_info);
 
-	test_gatt_client_subscribe(conn, BT_GATT_CCC_INDICATE);
-	test_gatt_client_wait_for(conn, CONN_INFO_INDICATED);
-	test_gatt_client_unsubscribe(conn);
+	test_gatt_client_subscribe(conn_info, BT_GATT_CCC_INDICATE);
+	test_gatt_client_wait_for(conn_info, CONN_INFO_INDICATED);
+	test_gatt_client_unsubscribe(conn_info);
 
-	test_gatt_client_write_without_resp(conn);
-
-	END_TEST("DUT")
-	BSIM_BUSY_WAIT
+	test_gatt_client_write_without_resp(conn_info);
 }
 
 void test_main(void)
@@ -36,14 +33,20 @@ void test_main(void)
 
 	test_init();
 
-	conn= test_peripheral_connect();
-	if(!conn) return;
+	conn_info = test_peripheral_connect();
+	if(!conn_info) return;
 
-	ret = test_gatt_client_discover(conn);
+	ret = test_gatt_client_discover(conn_info);
 	if (ret) return;
 
-	test_loop();
-	// test_disconnect();
+	for (int i = 0; i < TEST_LOOP; i++) {
+		test_loop();
+	}
+
+	test_connection_wait_for(conn_info->conn, CONN_INFO_DISCONNECTED);
+
+	END_TEST("DUT")
+	BSIM_BUSY_WAIT
 }
 
 int main(void)

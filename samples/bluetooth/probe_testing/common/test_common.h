@@ -7,6 +7,8 @@
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/sys/printk.h>
 
+#define TEST_LOOP 1
+
 #define MAX_DATA_LEN 128
 
 #define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0xBB, 0x4A, 0xFF, 0x4F, 0xAD, 0x03, 0x41, 0x5D, 0xA9, 0x6C, 0x9D, 0x6C, 0xDD, 0xDA, 0x83, 0x04)
@@ -17,7 +19,7 @@
 #define BSIM_BUSY_WAIT
 #endif
 
-#define END_TEST(DESC) 	k_msleep(100); printk("%6s ENDS ---------------\n", DESC);
+#define END_TEST(DESC) 	printk("%6s ENDS ---------------\n", DESC);
 
 enum {
 	DEVICE_IS_SCANNING,
@@ -29,10 +31,11 @@ enum {
 
 enum {
 	CONN_INFO_CONNECTED,
+	CONN_INFO_DISCONNECTED,
 	CONN_INFO_SECURITY_UPDATED,
 	CONN_INFO_SENT_MTU_EXCHANGE,
-	CONN_INFO_ID_RESOLVED,
 	CONN_INFO_MTU_EXCHANGED,
+	CONN_INFO_ID_RESOLVED,
 	CONN_INFO_DISCOVERING,
 	CONN_INFO_DISCOVER_PAUSED,
 	CONN_INFO_DISCOVER_SERV_COMPLETED,
@@ -61,7 +64,7 @@ typedef struct {
 
 
 typedef struct  {
-	uint32_t conn_obj_addr;
+	struct bt_conn *conn;
 	uint16_t start_handle;
 	uint16_t end_handle;
 	uint8_t perm;
@@ -74,7 +77,7 @@ typedef struct  {
 } gatt_service_discovery_t;
 
 typedef struct  {
-	uint32_t conn_obj_addr;
+	struct bt_conn *conn;
 	uint16_t handle;
 	uint16_t value_handle;
 	uint8_t properties;
@@ -88,7 +91,7 @@ typedef struct  {
 } gatt_char_discovery_t;
 
 typedef struct  {
-	uint32_t conn_obj_addr;
+	struct bt_conn *conn;
 	uint16_t handle;
 	uint8_t perm;
 	uint8_t uuid_type;
@@ -100,7 +103,7 @@ typedef struct  {
 } gatt_descr_discovery_t;
 
 typedef struct  {
-	uint32_t conn_obj_addr;
+	struct bt_conn *conn;
 	uint16_t handle;
 	uint8_t perm;
 	uint8_t uuid_type;
@@ -119,8 +122,10 @@ typedef struct {
 
 void test_connection_init(void);
 void test_central_connect(void);
+void test_disconnect_all(void);
 conn_info_t *test_peripheral_connect(void);
 conn_info_t *get_conn_info(struct bt_conn *conn);
+void test_connection_wait_for(struct bt_conn *conn, int flag);
 
 void test_gatt_client_init(void);
 int test_gatt_client_discover(conn_info_t *conn);

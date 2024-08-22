@@ -23,8 +23,6 @@ LOG_MODULE_REGISTER(test_connection, LOG_LEVEL_INF);
 
 #define LINK_COUNT 1
 #define DEFAULT_CONN_INTERVAL	   20
-#define PERIPHERAL_DEVICE_NAME	   "Zephyr Peripheral"
-#define PERIPHERAL_DEVICE_NAME_LEN (sizeof(PERIPHERAL_DEVICE_NAME) - 1)
 
 ATOMIC_DEFINE(status_flags, DEVICE_NUM_FLAGS);
 static atomic_t conn_count;
@@ -33,11 +31,11 @@ static struct bt_conn *conn_connecting;
 static conn_info_t conn_infos[CONFIG_BT_MAX_CONN] = {0};
 static struct bt_gatt_exchange_params mtu_exchange_params;
 
-static void wait_status(struct bt_conn *conn, int flag)
+void test_connection_wait_for(struct bt_conn *conn, int flag)
 {
 	conn_info_t *conn_info = get_conn_info(conn);
 	while(!atomic_test_bit(conn_info->flags, flag)) {
-		k_sleep(K_MSEC(10));
+		k_sleep(K_MSEC(5));
 	}
 }
 
@@ -51,8 +49,8 @@ static void set_security(struct bt_conn *conn, void *data)
 		LOG_ERR("Failed to set security (%d).", err);
 	}
 
-	wait_status(conn, CONN_INFO_SECURITY_UPDATED);
-	wait_status(conn, CONN_INFO_ID_RESOLVED);
+	test_connection_wait_for(conn, CONN_INFO_SECURITY_UPDATED);
+	test_connection_wait_for(conn, CONN_INFO_ID_RESOLVED);
 }
 
 static void mtu_exchange_cb(struct bt_conn *conn, uint8_t err,
@@ -259,7 +257,6 @@ static conn_info_t *get_new_conn_info(const bt_addr_le_t *addr)
 
 void clear_info(conn_info_t *info)
 {
-	/* clear everything except the address + sub params + uuid (lifetime > connection) */
 	memset(&info->flags, 0, sizeof(info->flags));
 	memset(&info->conn, 0, sizeof(info->conn));
 	memset(&info->notify_counter, 0, sizeof(info->notify_counter));
@@ -289,24 +286,11 @@ static void connected_cb(struct bt_conn *conn, uint8_t conn_err)
 
 static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 {
-	conn_info_t *conn_info;
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	LOG_INF("%s (reason 0x%02x)", addr, reason);
-
-	conn_info = get_conn_info(conn);
-	__ASSERT_NO_MSG(conn_info->conn != NULL);
-
-	bool valid_reason =
-		reason == BT_HCI_ERR_REMOTE_POWER_OFF ||
-		reason == BT_HCI_ERR_LOCALHOST_TERM_CONN;
-
-	__ASSERT(valid_reason, "(reason 0x%02x)", reason);
-
+	LOG_INF("(reason 0x%02x)", reason);
 	bt_conn_unref(conn);
-	clear_info(conn_info);
+
+	conn_info_t *conn_info = get_conn_info(conn);
+	atomic_set_bit(conn_info->flags, CONN_INFO_DISCONNECTED);
 	atomic_dec(&conn_count);
 }
 
@@ -389,16 +373,26 @@ conn_info_t* test_peripheral_connect(void)
 	}
 	LOG_INF("Started advertising");
 
-	conn_info_t *conn = &conn_infos[0];
+	conn_info_t *conn_info = &conn_infos[0];
 	LOG_INF("Waiting for connection from central...");
-	while (!atomic_test_bit(conn_infos->flags, CONN_INFO_CONNECTED)) {
-		k_sleep(K_MSEC(10));
-	}
+	test_connection_wait_for(conn_info->conn, CONN_INFO_CONNECTED);
 
 	LOG_INF("Waiting for security updated...");
-	while (!atomic_test_bit(conn_infos->flags, CONN_INFO_SECURITY_UPDATED)) {
-		k_sleep(K_MSEC(10));
-	}
+	test_connection_wait_for(conn_info->conn, CONN_INFO_SECURITY_UPDATED);
 
-	return conn;
+	return conn_info;
+}
+
+static void test_disconnect(struct bt_conn *conn, void *data)
+{
+	int err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+	if (err) {
+		LOG_ERR("Disconnect failed (err %d)", err);
+	}
+	test_connection_wait_for(conn, CONN_INFO_DISCONNECTED);
+}
+
+void test_disconnect_all(void)
+{
+	bt_conn_foreach(BT_CONN_TYPE_LE, test_disconnect, NULL);
 }

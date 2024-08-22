@@ -14,4 +14,4 @@ do
 done
 
 ((device_count++))
-./bs_2G4_phy_v1 -s=${SIM_ID} -D=$device_count -sim_length=10e6 &
+./bs_2G4_phy_v1 -s=${SIM_ID} -D=$device_count -sim_length=100e6 &

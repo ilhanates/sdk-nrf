@@ -21,9 +21,6 @@ void test_loop(void)
 	test_gatt_server_wait_for(BT_GATT_CCC_INDICATE);
 	test_gatt_server_indicate_all();
 	test_gatt_server_wait_for(0);
-
-	END_TEST("TESTER")
-	BSIM_BUSY_WAIT
 }
 
 void test_main(void)
@@ -32,7 +29,14 @@ void test_main(void)
 
 	test_central_connect();
 
-	test_loop();
+	for (int i = 0; i < TEST_LOOP; i++) {
+		test_loop();
+	}
+
+	test_disconnect_all();
+
+	END_TEST("TESTER")
+	BSIM_BUSY_WAIT
 }
 
 int main(void)

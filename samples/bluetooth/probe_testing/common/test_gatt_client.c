@@ -72,7 +72,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 		case BT_GATT_DISCOVER_PRIMARY:
 		case BT_GATT_DISCOVER_SECONDARY:
 			gatt_service = attr->user_data;
-			service_discovery.conn_obj_addr = (uint32_t)conn;
+			service_discovery.conn = conn;
 			service_discovery.start_handle = attr->handle;
 			service_discovery.end_handle = gatt_service->end_handle;
 			service_discovery.perm = attr->perm;
@@ -84,7 +84,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 			break;
 		case BT_GATT_DISCOVER_CHARACTERISTIC:
 			gatt_chrc = attr->user_data;
-			char_discovery.conn_obj_addr = (uint32_t)conn;
+			char_discovery.conn = conn;
 			char_discovery.handle = attr->handle;
 			char_discovery.value_handle = gatt_chrc->value_handle;
 			char_discovery.properties = gatt_chrc->properties;
@@ -96,7 +96,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_CHAR_COMPLETED);
 			break;
 		case BT_GATT_DISCOVER_DESCRIPTOR:
-			descr_discovery.conn_obj_addr = (uint32_t)conn;
+			descr_discovery.conn = conn;
 			descr_discovery.handle = attr->handle;
 			descr_discovery.perm = attr->perm;
 			descr_discovery.uuid_type = attr->uuid->type;
@@ -108,7 +108,7 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 			break;
 		case BT_GATT_DISCOVER_ATTRIBUTE:
 			LOG_WRN("BT_GATT_DISCOVER_ATTRIBUTE");
-			attr_discovery.conn_obj_addr = (uint32_t)conn;
+			attr_discovery.conn = conn;
 			attr_discovery.handle = attr->handle;
 			attr_discovery.perm = attr->perm;
 			attr_discovery.uuid_type = attr->uuid->type;
