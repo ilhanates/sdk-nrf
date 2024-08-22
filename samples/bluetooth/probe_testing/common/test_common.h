@@ -53,66 +53,18 @@ enum {
 typedef struct {
 	ATOMIC_DEFINE(flags, CONN_INFO_NUM_FLAGS);
 	struct bt_conn *conn;
-	uint32_t notify_counter;
-	uint32_t tx_notify_counter;
-	struct bt_uuid_128 uuid;
+	uint32_t notify_count;
+	uint32_t write_counter;
 	struct bt_gatt_discover_params discover_params;
 	struct bt_gatt_subscribe_params subscribe_params;
-	struct bt_conn_le_data_len_param le_data_len_param;
 	bt_addr_le_t addr;
 } conn_info_t;
 
 
 typedef struct  {
-	struct bt_conn *conn;
 	uint16_t start_handle;
 	uint16_t end_handle;
-	uint8_t perm;
-	uint8_t uuid_type;
-	union  {
-		uint16_t uuid16;
-		uint32_t uuid32;
-		uint8_t uuid128[16];
-	} uuid;
 } gatt_service_discovery_t;
-
-typedef struct  {
-	struct bt_conn *conn;
-	uint16_t handle;
-	uint16_t value_handle;
-	uint8_t properties;
-	uint8_t perm;
-	uint8_t uuid_type;
-	union  {
-		uint16_t uuid16;
-		uint32_t uuid32;
-		uint8_t uuid128[16];
-	} uuid;
-} gatt_char_discovery_t;
-
-typedef struct  {
-	struct bt_conn *conn;
-	uint16_t handle;
-	uint8_t perm;
-	uint8_t uuid_type;
-	union  {
-		uint16_t uuid16;
-		uint32_t uuid32;
-		uint8_t uuid128[16];
-	} uuid;
-} gatt_descr_discovery_t;
-
-typedef struct  {
-	struct bt_conn *conn;
-	uint16_t handle;
-	uint8_t perm;
-	uint8_t uuid_type;
-	union  {
-		uint16_t uuid16;
-		uint32_t uuid32;
-		uint8_t uuid128[16];
-	} uuid;
-} gatt_attr_discovery_t;
 
 typedef struct {
 	uint16_t len;

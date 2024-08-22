@@ -259,8 +259,7 @@ void clear_info(conn_info_t *info)
 {
 	memset(&info->flags, 0, sizeof(info->flags));
 	memset(&info->conn, 0, sizeof(info->conn));
-	memset(&info->notify_counter, 0, sizeof(info->notify_counter));
-	memset(&info->tx_notify_counter, 0, sizeof(info->tx_notify_counter));
+	memset(&info->notify_count, 0, sizeof(info->notify_count));
 }
 
 static void connected_cb(struct bt_conn *conn, uint8_t conn_err)

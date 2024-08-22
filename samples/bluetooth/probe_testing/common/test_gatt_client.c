@@ -21,10 +21,9 @@ LOG_MODULE_REGISTER(test_gatt_client, LOG_LEVEL_INF);
 
 static uint8_t test_value[MAX_DATA_LEN];
 
-static gatt_service_discovery_t service_discovery;
-static gatt_char_discovery_t char_discovery;
-static gatt_descr_discovery_t descr_discovery;
-static gatt_attr_discovery_t attr_discovery;
+static gatt_service_discovery_t gatt_serv;
+static struct bt_gatt_chrc gatt_char;
+static struct bt_gatt_attr gatt_descr;
 static struct bt_gatt_subscribe_params subscribe_params;
 
 static void gatt_client_subscribe_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_subscribe_params *params)
@@ -59,9 +58,6 @@ static uint8_t gatt_client_notify_cb(struct bt_conn *conn, struct bt_gatt_subscr
 static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				struct bt_gatt_discover_params *params)
 {
-	struct bt_gatt_service_val *gatt_service;
-	struct bt_gatt_chrc *gatt_chrc;
-
 	if (attr == NULL) {
 		return BT_GATT_ITER_STOP;
 	}
@@ -71,47 +67,28 @@ static uint8_t gatt_discover_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 	switch (params->type) {
 		case BT_GATT_DISCOVER_PRIMARY:
 		case BT_GATT_DISCOVER_SECONDARY:
-			gatt_service = attr->user_data;
-			service_discovery.conn = conn;
-			service_discovery.start_handle = attr->handle;
-			service_discovery.end_handle = gatt_service->end_handle;
-			service_discovery.perm = attr->perm;
-			service_discovery.uuid_type = gatt_service->uuid->type;
+			struct bt_gatt_service_val *gatt_service = attr->user_data;
+			gatt_serv.start_handle = attr->handle;
+			gatt_serv.end_handle = gatt_service->end_handle;
 
 			bt_uuid_to_str(gatt_service->uuid, uuid_str, sizeof(uuid_str));
-			LOG_INF("GATT_DISCOVER_PRIMARY UUID: %s HANDLE-> S:%u E:%u", uuid_str, service_discovery.start_handle, service_discovery.end_handle);
+			LOG_INF("GATT_DISCOVER_PRIMARY UUID: %s HANDLE-> S:%u E:%u", uuid_str, gatt_serv.start_handle, gatt_serv.end_handle);
 			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_SERV_COMPLETED);
 			break;
 		case BT_GATT_DISCOVER_CHARACTERISTIC:
-			gatt_chrc = attr->user_data;
-			char_discovery.conn = conn;
-			char_discovery.handle = attr->handle;
-			char_discovery.value_handle = gatt_chrc->value_handle;
-			char_discovery.properties = gatt_chrc->properties;
-			char_discovery.perm = attr->perm;
-			char_discovery.uuid_type = gatt_chrc->uuid->type;
-
-			bt_uuid_to_str(gatt_chrc->uuid, uuid_str, sizeof(uuid_str));
-			LOG_INF("BT_GATT_DISCOVER_CHARACTERISTIC UUID: %s HANDLE-> %u Value Handle:%u", uuid_str, char_discovery.handle, char_discovery.value_handle);
+			struct bt_gatt_chrc *chrc = attr->user_data;
+			gatt_char.value_handle = chrc->value_handle;
+			gatt_char.properties = chrc->properties;
+			bt_uuid_to_str(chrc->uuid, uuid_str, sizeof(uuid_str));
+			LOG_INF("BT_GATT_DISCOVER_CHARACTERISTIC UUID: %s Value Handle:%u", uuid_str, gatt_char.value_handle);
 			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_CHAR_COMPLETED);
 			break;
 		case BT_GATT_DISCOVER_DESCRIPTOR:
-			descr_discovery.conn = conn;
-			descr_discovery.handle = attr->handle;
-			descr_discovery.perm = attr->perm;
-			descr_discovery.uuid_type = attr->uuid->type;
-
+			gatt_descr.handle = attr->handle;
 			bt_uuid_to_str(attr->uuid, uuid_str, sizeof(uuid_str));
-			LOG_INF("BT_GATT_DISCOVER_DESCRIPTOR UUID: %s HANDLE:%u", uuid_str, descr_discovery.handle);
+			LOG_INF("BT_GATT_DISCOVER_DESCRIPTOR UUID: %s HANDLE:%u", uuid_str, gatt_descr.handle);
 			atomic_set_bit(conn_info->flags, CONN_INFO_DISCOVER_DESC_COMPLETED);
 			//state = BT_GATT_ITER_STOP;
-			break;
-		case BT_GATT_DISCOVER_ATTRIBUTE:
-			LOG_WRN("BT_GATT_DISCOVER_ATTRIBUTE");
-			attr_discovery.conn = conn;
-			attr_discovery.handle = attr->handle;
-			attr_discovery.perm = attr->perm;
-			attr_discovery.uuid_type = attr->uuid->type;
 			break;
 		default:
 			LOG_ERR("Undefined discovery:%d", params->type);
@@ -129,13 +106,11 @@ void test_gatt_client_init(void)
 int test_gatt_client_discover(conn_info_t *conn_info)
 {
 	int err = 0;
-	memcpy(&conn_info->uuid, CUSTOM_SERVICE_UUID,
-		   sizeof(conn_info->uuid));
 	memset(&conn_info->discover_params, 0,
 		   sizeof(conn_info->discover_params));
 
 	LOG_INF("Start service discovery...");
-	conn_info->discover_params.uuid = &conn_info->uuid.uuid;
+	conn_info->discover_params.uuid = CUSTOM_SERVICE_UUID;
 	conn_info->discover_params.func = gatt_discover_cb;
 	conn_info->discover_params.start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
 	conn_info->discover_params.end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
@@ -152,8 +127,8 @@ int test_gatt_client_discover(conn_info_t *conn_info)
 	LOG_INF("Start char discovery...");
 	conn_info->discover_params.uuid = NULL;
 	conn_info->discover_params.func = gatt_discover_cb;
-	conn_info->discover_params.start_handle = service_discovery.start_handle;
-	conn_info->discover_params.end_handle = service_discovery.end_handle;
+	conn_info->discover_params.start_handle = gatt_serv.start_handle;
+	conn_info->discover_params.end_handle = gatt_serv.end_handle;
 	conn_info->discover_params.type = BT_GATT_DISCOVER_CHARACTERISTIC;
 	err = bt_gatt_discover(conn_info->conn, &conn_info->discover_params);
 	if (err) {
@@ -167,8 +142,8 @@ int test_gatt_client_discover(conn_info_t *conn_info)
 	LOG_INF("Start descr discovery...");
 	conn_info->discover_params.uuid = NULL;
 	conn_info->discover_params.func = gatt_discover_cb;
-	conn_info->discover_params.start_handle = char_discovery.value_handle + 1;
-	conn_info->discover_params.end_handle = service_discovery.end_handle;
+	conn_info->discover_params.start_handle = gatt_char.value_handle + 1;
+	conn_info->discover_params.end_handle = gatt_serv.end_handle;
 	conn_info->discover_params.type = BT_GATT_DISCOVER_DESCRIPTOR;
 	err = bt_gatt_discover(conn_info->conn, &conn_info->discover_params);
 	if (err) {
@@ -188,8 +163,8 @@ void test_gatt_client_subscribe(conn_info_t *conn_info, uint16_t value)
 {
 	int err = 0;
 	subscribe_params.value = value;
-	subscribe_params.value_handle = char_discovery.value_handle;
-	subscribe_params.ccc_handle = descr_discovery.handle;
+	subscribe_params.value_handle = gatt_char.value_handle;
+	subscribe_params.ccc_handle = gatt_descr.handle;
 	subscribe_params.subscribe = gatt_client_subscribe_cb,
 	subscribe_params.notify = gatt_client_notify_cb;
 	err = bt_gatt_subscribe(conn_info->conn, &subscribe_params);
@@ -208,8 +183,8 @@ void test_gatt_client_unsubscribe(conn_info_t *conn_info)
 {
 	int err = 0;
 	subscribe_params.value = 0;
-	subscribe_params.value_handle = char_discovery.value_handle;
-	subscribe_params.ccc_handle = descr_discovery.handle;
+	subscribe_params.value_handle = gatt_char.value_handle;
+	subscribe_params.ccc_handle = gatt_descr.handle;
 	subscribe_params.subscribe = gatt_client_unsubscribe_cb,
 	subscribe_params.notify = gatt_client_notify_cb;
 
@@ -229,7 +204,7 @@ int test_gatt_client_write_without_resp(conn_info_t *conn_info)
 {
 	static uint16_t write_count = 1;
 	test_common_prepare_value(2, "WRITE", write_count, test_value);
-	int err = bt_gatt_write_without_response(conn_info->conn, char_discovery.value_handle, test_value,
+	int err = bt_gatt_write_without_response(conn_info->conn, gatt_char.value_handle, test_value,
 						 MAX_DATA_LEN, false);
 	if (err) {
 		LOG_ERR("GATT Write without response failed:%d", err);
