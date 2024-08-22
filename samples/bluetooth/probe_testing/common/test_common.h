@@ -1,14 +1,23 @@
 
-
+#include <zephyr/types.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/sys/printk.h>
 
 #define MAX_DATA_LEN 128
 
 #define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0xBB, 0x4A, 0xFF, 0x4F, 0xAD, 0x03, 0x41, 0x5D, 0xA9, 0x6C, 0x9D, 0x6C, 0xDD, 0xDA, 0x83, 0x04)
+
+#ifdef CONFIG_SOC_SERIES_BSIM_NRFXX
+#define BSIM_BUSY_WAIT do { k_msleep(10); } while(1);
+#else
+#define BSIM_BUSY_WAIT
+#endif
+
+#define END_TEST(DESC) 	k_msleep(100); printk("%6s ENDS ---------------\n", DESC);
 
 enum {
 	DEVICE_IS_SCANNING,
@@ -30,6 +39,7 @@ enum {
 	CONN_INFO_DISCOVER_CHAR_COMPLETED,
 	CONN_INFO_DISCOVER_DESC_COMPLETED,
 	CONN_INFO_SUBSCRIBED,
+	CONN_INFO_NOTIFIED,
 	CONN_INFO_INDICATION_CONFIRMED,
 
 	/* Total number of flags - must be at the end of the enum */
@@ -116,7 +126,9 @@ bool is_connected(struct bt_conn *conn);
 void test_gatt_client_init(void);
 int test_gatt_client_discover(struct conn_info *conn);
 void test_gatt_client_subscribe(struct conn_info *conn, uint16_t value);
+void test_gatt_client_unsubscribe(struct conn_info *conn_info_ref);
 int test_gatt_client_write_without_resp(struct conn_info *conn);
+void test_gatt_client_wait_notification(struct conn_info *conn_info_ref);
 
 void test_gatt_server_init(void);
 void test_gatt_server_wait_subscribe(uint8_t subscription_value);

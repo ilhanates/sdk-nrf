@@ -4,24 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/conn.h>
-#include <zephyr/bluetooth/gatt.h>
-#include <zephyr/bluetooth/hci.h>
-#include <zephyr/bluetooth/services/ias.h>
-#include <zephyr/bluetooth/uuid.h>
-#include <zephyr/kernel.h>
-#include <zephyr/settings/settings.h>
-#include <zephyr/sys/byteorder.h>
-#include <zephyr/sys/check.h>
-#include <zephyr/sys/printk.h>
-#include <zephyr/types.h>
 #include "test_common.h"
 
 struct conn_info *conn = NULL;
@@ -35,12 +17,17 @@ void test_init(void)
 void test_loop(void)
 {
 	test_gatt_client_subscribe(conn, BT_GATT_CCC_NOTIFY);
-	test_gatt_client_write_without_resp(conn);
-	test_gatt_client_subscribe(conn, BT_GATT_CCC_INDICATE);
+	test_gatt_client_wait_for(conn, CONN_INFO_NOTIFIED);
+	test_gatt_client_unsubscribe(conn);
 
-	while (true) {
-		k_msleep(10);
-	}
+	test_gatt_client_subscribe(conn, BT_GATT_CCC_INDICATE);
+	test_gatt_client_wait_for(conn, CONN_INFO_INDICATED);
+	test_gatt_client_unsubscribe(conn);
+
+	test_gatt_client_write_without_resp(conn);
+
+	END_TEST("DUT")
+	BSIM_BUSY_WAIT
 }
 
 void test_main(void)

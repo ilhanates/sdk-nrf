@@ -97,7 +97,7 @@ void test_gatt_server_init(void)
 
 void test_gatt_server_wait_subscribe(uint8_t subscription_value)
 {
-	LOG_INF("Waiting GATT subscription...");
+	LOG_INF("Waiting GATT %ssubscription...", (subscription_value)? "": "Un");
 	while (gatt_subscription != subscription_value) {
 		k_sleep(K_MSEC(10));
 	}

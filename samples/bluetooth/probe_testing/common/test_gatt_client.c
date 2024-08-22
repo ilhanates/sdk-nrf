@@ -27,7 +27,6 @@ static gatt_descr_discovery_t descr_discovery;
 static gatt_attr_discovery_t attr_discovery;
 static struct bt_gatt_subscribe_params subscribe_params;
 
-
 static void gatt_client_subscribe_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_subscribe_params *params)
 {
 	LOG_INF("[SUBSCRIBED]");
@@ -35,11 +34,25 @@ static void gatt_client_subscribe_cb(struct bt_conn *conn, uint8_t err, struct b
 	atomic_set_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED);
 }
 
+static void gatt_client_unsubscribe_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_subscribe_params *params)
+{
+	LOG_INF("[UNSUBSCRIBED]");
+
+	struct conn_info *conn_info_ref = get_conn_info_ref(conn);
+	atomic_clear_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED);
+}
+
 static uint8_t gatt_client_notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
 			   const void *data, uint16_t length)
 {
 	uint8_t *value = (uint8_t *)data;
-	LOG_INF("%s", value);
+	if (value && length > 0) {
+		LOG_INF("%s", value);
+
+		struct conn_info *conn_info_ref = get_conn_info_ref(conn);
+		uint8_t flag = (params->value == BT_GATT_CCC_NOTIFY) ? CONN_INFO_NOTIFIED: CONN_INFO_INDICATED;
+		atomic_set_bit(conn_info_ref->flags, flag);
+	}
 	return BT_GATT_ITER_CONTINUE;
 }
 
@@ -191,6 +204,27 @@ void test_gatt_client_subscribe(struct conn_info *conn_info_ref, uint16_t value)
 	}
 }
 
+void test_gatt_client_unsubscribe(struct conn_info *conn_info_ref)
+{
+	int err = 0;
+	subscribe_params.value = 0;
+	subscribe_params.value_handle = char_discovery.value_handle;
+	subscribe_params.ccc_handle = descr_discovery.handle;
+	subscribe_params.subscribe = gatt_client_unsubscribe_cb,
+	subscribe_params.notify = gatt_client_notify_cb;
+
+	err = bt_gatt_unsubscribe(conn_info_ref->conn_ref, &subscribe_params);
+	if (err && err != -EALREADY) {
+		LOG_ERR("Unsubscribe failed (err %d)", err);
+		return;
+	}
+
+	LOG_INF("Waiting for gatt unsubscribe...");
+	while (atomic_test_bit(conn_info_ref->flags, CONN_INFO_SUBSCRIBED)) {
+		k_sleep(K_MSEC(10));
+	}
+}
+
 int test_gatt_client_write_without_resp(struct conn_info *conn_info_ref)
 {
 	static uint16_t write_count = 1;
@@ -203,4 +237,13 @@ int test_gatt_client_write_without_resp(struct conn_info *conn_info_ref)
 	write_count++;
 
 	return err;
+}
+
+void test_gatt_client_wait_for(struct conn_info *conn_info_ref, uint8_t state)
+{
+	LOG_INF("%s...", (state == CONN_INFO_NOTIFIED) ? "notification": "indication");
+	while (!atomic_test_bit(conn_info_ref->flags, state)) {
+		k_sleep(K_MSEC(10));
+	}
+	atomic_clear_bit(conn_info_ref->flags, state);
 }
