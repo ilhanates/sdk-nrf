@@ -21,7 +21,7 @@
 LOG_MODULE_REGISTER(test_connection, LOG_LEVEL_INF);
 
 
-#define LINK_COUNT 1
+#define LINK_COUNT 2
 #define DEFAULT_CONN_INTERVAL	   20
 
 ATOMIC_DEFINE(status_flags, DEVICE_NUM_FLAGS);
@@ -89,6 +89,7 @@ static void exchange_mtu(struct bt_conn *conn, void *data)
 		LOG_DBG("Updating MTU for %s to %u", addr, bt_gatt_get_mtu(conn));
 
 		mtu_exchange_params.func = mtu_exchange_cb;
+		atomic_clear_bit(conn_info->flags, CONN_INFO_SENT_MTU_EXCHANGE);
 		err = bt_gatt_exchange_mtu(conn, &mtu_exchange_params);
 		if (err) {
 			LOG_ERR("MTU exchange failed (err %d)", err);
@@ -97,6 +98,7 @@ static void exchange_mtu(struct bt_conn *conn, void *data)
 			LOG_INF("MTU Exchange pending...");
 		}
 	}
+	test_connection_wait_for(conn_info->conn, CONN_INFO_MTU_EXCHANGED);
 }
 
 static void security_changed_cb(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
@@ -281,6 +283,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t conn_err)
 
 	conn_info->conn = conn;
 	atomic_set_bit(conn_info->flags, CONN_INFO_CONNECTED);
+	atomic_clear_bit(status_flags, DEVICE_IS_CONNECTING);
 }
 
 static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
@@ -350,6 +353,7 @@ void test_central_connect(void)
 			start_scan();
 		}
 	}
+	stop_scan();
 
 	LOG_WRN("2- SECURITY ----------");
 	int level = BT_SECURITY_L2;

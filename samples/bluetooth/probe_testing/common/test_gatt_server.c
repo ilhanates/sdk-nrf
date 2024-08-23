@@ -45,9 +45,13 @@ void on_att_mtu_updated_cb(struct bt_conn *conn, uint16_t tx, uint16_t rx)
 
 static void on_gatt_ccc_changed_cb(const struct bt_gatt_attr *attr, uint16_t value)
 {
-	if (value) {
-		LOG_INF("subscribed for %s", (value == BT_GATT_CCC_NOTIFY) ? "notification": "indication");
-	} else {
+	if (value == BT_GATT_CCC_NOTIFY) {
+		LOG_INF("subscribed for notification");
+	}
+	else if (value == BT_GATT_CCC_INDICATE) {
+		LOG_INF("subscribed for indication");
+	}
+	else if (value == 0) {
 		LOG_INF("unsubscribed");
 	}
 
@@ -104,6 +108,7 @@ void test_gatt_server_wait_for(uint8_t subscription_value)
 	while (gatt_subscription != subscription_value) {
 		k_sleep(K_MSEC(10));
 	}
+	k_msleep(3000); /*TODO: Find a way to wait for all subscriptions.*/
 }
 
 static void test_gatt_server_notify(struct bt_conn *conn, void *data)

@@ -6,7 +6,7 @@ SIM_ID="PROBE_TESTING"
 
 cd ${BSIM_OUT_PATH}/bin/
 
-device_count=1
+device_count=2
 ${TESTER_BUILD_DIR}/tester/zephyr/zephyr.exe -s=${SIM_ID} -d=0 &
 for i in $(seq 1 $device_count);
 do
@@ -14,4 +14,4 @@ do
 done
 
 ((device_count++))
-./bs_2G4_phy_v1 -s=${SIM_ID} -D=$device_count -sim_length=100e6 &
+./bs_2G4_phy_v1 -s=${SIM_ID} -D=$device_count -sim_length=20e6 &
