@@ -334,7 +334,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	advertising_start();
 }
 
-
+volatile int sec_changed = 0;
 #ifdef CONFIG_BT_HIDS_SECURITY_ENABLED
 static void security_changed(struct bt_conn *conn, bt_security_t level,
 			     enum bt_security_err err)
@@ -344,6 +344,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
 	if (!err) {
+		sec_changed = 1;
 		printk("Security changed: %s level %u\n", addr, level);
 	} else {
 		printk("Security failed: %s level %u err %d %s\n", addr, level, err,
@@ -648,8 +649,8 @@ static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
 }
 
 static struct bt_conn_auth_cb conn_auth_callbacks = {
-	.passkey_display = auth_passkey_display,
-	.passkey_confirm = auth_passkey_confirm,
+	.passkey_display = NULL,
+	.passkey_confirm = NULL,
 	.cancel = auth_cancel,
 };
 
@@ -821,8 +822,11 @@ int main(void)
 	configure_buttons();
 
 	while (1) {
-		k_sleep(K_SECONDS(1));
+		k_sleep(K_SECONDS(2));
 		/* Battery level simulation */
 		bas_notify();
+		if (sec_changed) {
+			mouse_movement_send(1, 1);
+		}
 	}
 }
