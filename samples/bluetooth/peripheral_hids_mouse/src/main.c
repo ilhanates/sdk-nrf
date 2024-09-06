@@ -652,8 +652,8 @@ static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
 }
 
 static struct bt_conn_auth_cb conn_auth_callbacks = {
-	.passkey_display = auth_passkey_display,
-	.passkey_confirm = auth_passkey_confirm,
+	.passkey_display = NULL,
+	.passkey_confirm = NULL,
 	.cancel = auth_cancel,
 };
 
@@ -825,8 +825,9 @@ int main(void)
 	configure_buttons();
 
 	while (1) {
-		k_sleep(K_SECONDS(1));
+		k_sleep(K_SECONDS(2));
 		/* Battery level simulation */
 		bas_notify();
+		mouse_movement_send(1, 1);
 	}
 }
