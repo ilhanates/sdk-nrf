@@ -779,6 +779,13 @@ static void bas_notify(void)
 	bt_bas_set_battery_level(battery_level);
 }
 
+#if defined(NRF54L15_XXAA)
+#if defined(NRF_TRUSTZONE_NONSECURE)
+uint32_t* INTERNAL_PT = ((uint32_t*) 0x40120820);
+#else
+uint32_t* INTERNAL_PT = ((uint32_t*) 0x50120820);
+#endif
+#endif
 
 int main(void)
 {
@@ -788,6 +795,9 @@ int main(void)
 	// 	printk("mpsl_clock_hfclk_request failed (err %d)\n", err);
 	// 	return 0;
 	// }
+#if defined(NRF54L15_XXAA)
+	printk("INTERNAL_PT %x\n", *INTERNAL_PT);
+#endif
 
 	printk("Starting Bluetooth Peripheral HIDS mouse sample\n");
 
