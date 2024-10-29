@@ -795,6 +795,7 @@ int main(void)
 	// 	printk("mpsl_clock_hfclk_request failed (err %d)\n", err);
 	// 	return 0;
 	// }
+	printk("peripheral_hids_mouse app starts\n");
 #if defined(NRF54L15_XXAA)
 	printk("INTERNAL_PT %x\n", *INTERNAL_PT);
 #endif
