@@ -27,7 +27,6 @@
 #include <bluetooth/services/hids.h>
 #include <zephyr/bluetooth/services/dis.h>
 #include <dk_buttons_and_leds.h>
-#include "mpsl.h"
 
 #define DEVICE_NAME     CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
@@ -779,26 +778,10 @@ static void bas_notify(void)
 	bt_bas_set_battery_level(battery_level);
 }
 
-#if defined(NRF54L15_XXAA)
-#if defined(NRF_TRUSTZONE_NONSECURE)
-uint32_t* INTERNAL_PT = ((uint32_t*) 0x40120820);
-#else
-uint32_t* INTERNAL_PT = ((uint32_t*) 0x50120820);
-#endif
-#endif
 
 int main(void)
 {
 	int err;
-	// err = mpsl_clock_hfclk_request(NULL);
-	// if (err) {
-	// 	printk("mpsl_clock_hfclk_request failed (err %d)\n", err);
-	// 	return 0;
-	// }
-	printk("peripheral_hids_mouse app starts\n");
-#if defined(NRF54L15_XXAA)
-	printk("INTERNAL_PT %x\n", *INTERNAL_PT);
-#endif
 
 	printk("Starting Bluetooth Peripheral HIDS mouse sample\n");
 
