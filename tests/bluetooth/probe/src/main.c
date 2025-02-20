@@ -44,6 +44,7 @@ enum {
 	CONN_INFO_DISCONNECTED,
 	CONN_INFO_SECURITY_CHANGED,
 	CONN_INFO_PAIRING_COMPLETED,
+	CONN_INFO_PARAM_UPATED,
 	CONN_INFO_DISCOVER_COMPLETED,
 	CONN_INFO_HIDS_CLIENT_READY,
 
@@ -207,8 +208,15 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 	atomic_set_bit(conn_info->flags, CONN_INFO_SECURITY_CHANGED);
 }
 
+static void param_updated(struct bt_conn *conn, uint16_t interval, uint16_t latency,
+					uint16_t timeout)
+{
+	conn_info_t *conn_info = get_conn_info(conn);
+	atomic_set_bit(conn_info->flags, CONN_INFO_PARAM_UPATED);
+}
+
 BT_CONN_CB_DEFINE(conn_callbacks) = {
-	.connected = connected, .disconnected = disconnected, .security_changed = security_changed};
+	.connected = connected, .disconnected = disconnected, .security_changed = security_changed, .le_param_updated = param_updated};
 
 static void scan_init(void)
 {
@@ -501,6 +509,16 @@ static void reset_counters(struct bt_conn *conn, void *data)
 	conn_info->mouse_report_last_ms = 0;
 }
 
+static void update_conn_interval(struct bt_conn *conn, void *data)
+{
+	#define INTERVAL_MS_UNITS 3200 /* 4s */
+	#define CONN_TIMEOUT ((10 * 1000) / 10) /* 10s */
+	struct bt_le_conn_param *param = BT_LE_CONN_PARAM(INTERVAL_MS_UNITS, INTERVAL_MS_UNITS, 0, CONN_TIMEOUT);
+	bt_conn_le_param_update(conn, param);
+
+	wait_peer_for(conn, CONN_INFO_PARAM_UPATED);
+}
+
 static void print_stats_conn(struct bt_conn *conn, void *data)
 {
 	conn_info_t *conn_info = get_conn_info(conn);
@@ -518,6 +536,7 @@ void print_stats(void)
 	uint16_t paired_count = 0;
 	uint16_t discovered_count = 0;
 	uint16_t hids_client_ready_count = 0;
+	uint16_t disconn_count = 0;
 
 	for (int i = 0; i < ARRAY_SIZE(conn_infos); i++) {
 		if (conn_infos[i].conn != NULL) {
@@ -533,12 +552,16 @@ void print_stats(void)
 			if (atomic_test_bit(conn_infos[i].flags, CONN_INFO_HIDS_CLIENT_READY)) {
 				hids_client_ready_count++;
 			}
+
+			if (atomic_test_bit(conn_infos[i].flags, CONN_INFO_DISCONNECTED)) {
+				disconn_count++;
+			}
 		}
 	}
 	uint16_t scanned = atomic_get(&scanned_count);
 	LOG_INF("Stats Summary: Scanned:%02d, Connected:%02d, Paired:%02d, Discovered:%02d, "
-		"HIDS_Ready:%02d",
-		scanned, conn_count, paired_count, discovered_count, hids_client_ready_count);
+		"HIDS_Ready:%02d, Disconnected:%02d",
+		scanned, conn_count, paired_count, discovered_count, hids_client_ready_count, disconn_count);
 	bt_conn_foreach(BT_CONN_TYPE_LE, print_stats_conn, NULL);
 }
 
@@ -557,6 +580,8 @@ int main(void)
 	bt_conn_foreach(BT_CONN_TYPE_LE, gatt_discover, NULL);
 
 	bt_conn_foreach(BT_CONN_TYPE_LE, reset_counters, NULL);
+
+	bt_conn_foreach(BT_CONN_TYPE_LE, update_conn_interval, NULL);
 
 	while (1) {
 		/* Wait enough to get mouse event reports.*/
