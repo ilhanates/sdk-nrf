@@ -11,4 +11,5 @@ project(channel_sound_ipt_reflector)
 
 # NORDIC SDK APP START
 target_sources(app PRIVATE src/main.c)
+target_sources_ifdef(CONFIG_IPT_REFLECTOR_SDC_ASSERT_OUTPUT_FLASH app PRIVATE src/sdc_assert_flash.c)
 # NORDIC SDK APP END

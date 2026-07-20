@@ -8,6 +8,7 @@
  *  @brief Channel Sounding Reflector with Inline PCT Transfer sample
  */
 
+#include <stdlib.h>
 #include <zephyr/types.h>
 #include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
@@ -19,8 +20,23 @@
 #include <dk_buttons_and_leds.h>
 #include <sdc_hci_vs.h>
 
+#if IS_ENABLED(CONFIG_IPT_REFLECTOR_SDC_ASSERT_OUTPUT_FLASH)
+#include "sdc_assert_flash.h"
+#endif
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(app_main, LOG_LEVEL_INF);
+
+void bt_ctlr_assert_handle(char *file, uint32_t line)
+{
+#if IS_ENABLED(CONFIG_IPT_REFLECTOR_SDC_ASSERT_OUTPUT_FLASH)
+	sdc_assert_flash_store(file, line);
+#else
+	LOG_ERR("SoftDevice Controller ASSERT: %s, 0x%04x", file, line);
+#endif
+
+	k_oops();
+}
 
 #define CON_STATUS_LED DK_LED1
 
