@@ -17,6 +17,7 @@
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/cs.h>
 #include <dk_buttons_and_leds.h>
+#include <sdc_hci_vs.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(app_main, LOG_LEVEL_INF);
@@ -201,6 +202,15 @@ int main(void)
 		return 0;
 	}
 
+	sdc_hci_cmd_vs_cs_params_set_t cs_params_set_vreg_mode = {
+    .cs_param_type = SDC_HCI_VS_CS_PARAM_TYPE_CS_VREG_MODE_SET,
+    .cs_param_data.cs_vreg_mode_params.cs_vreg_mode_enable_ldo = 0x1,
+	};
+	err = sdc_hci_cmd_vs_cs_params_set(&cs_params_set_vreg_mode);
+	if (err) {
+		LOG_ERR("CS LDO mode init failed (err %d)", err);
+		return 0;
+	}
 	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), NULL, 0);
 	if (err) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
